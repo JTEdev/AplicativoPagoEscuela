@@ -1,0 +1,6 @@
+{
+  "name": "Sistema de Pagos pensiones Escuela",
+  "description": "A web application for managing and paying private school tuition and fees. Includes a Gemini-powered help assistant.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
