@@ -28,9 +28,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState<boolean>(true); // Start true to load initial state
 
   useEffect(() => {
-    // Load users from localStorage on initial mount
-    const storedUsers = localStorage.getItem('users');
-    setUsers(storedUsers ? JSON.parse(storedUsers) : initialUsers);
+    // Load users from backend API
+    const fetchUsersFromAPI = async () => {
+      try {
+        const res = await fetch('http://localhost:8080/api/users');
+        if (res.ok) {
+          const data = await res.json();
+          setUsers(data);
+        }
+      } catch (e) {
+        // Si falla, usa localStorage o initialUsers
+        const storedUsers = localStorage.getItem('users');
+        setUsers(storedUsers ? JSON.parse(storedUsers) : initialUsers);
+      }
+    };
+    fetchUsersFromAPI();
 
     // Load currentUser from localStorage
     const storedCurrentUser = localStorage.getItem('currentUser');

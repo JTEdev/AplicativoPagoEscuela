@@ -1,7 +1,8 @@
-
-import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { Payment, PaymentStatus } from '../types';
 import { MOCK_PAYMENTS } from '../constants';
+import { getPaymentsByUser } from '../services/paymentService';
+import { useAuth } from './AuthContext';
 
 interface PaymentContextType {
   payments: Payment[];
@@ -13,6 +14,23 @@ const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
 
 export const PaymentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [payments, setPayments] = useState<Payment[]>(MOCK_PAYMENTS);
+  const { currentUser } = useAuth();
+
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (currentUser && currentUser.id) {
+        try {
+          const pagos = await getPaymentsByUser(currentUser.id);
+          setPayments(pagos);
+        } catch (e) {
+          setPayments([]); // O mantener los pagos previos si falla
+        }
+      } else {
+        setPayments([]);
+      }
+    };
+    fetchPayments();
+  }, [currentUser]);
 
   const updatePaymentStatus = useCallback((paymentId: string, newStatus: PaymentStatus) => {
     setPayments(prevPayments =>

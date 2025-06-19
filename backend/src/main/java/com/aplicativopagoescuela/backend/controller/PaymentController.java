@@ -84,31 +84,39 @@ public class PaymentController {
     @PostMapping
     public ResponseEntity<Object> createPayment(@RequestBody PaymentDTO paymentDTO) {
         logger.info("Intentando crear pago: {}", paymentDTO);
-        Optional<User> userOpt = userService.getAllUsers().stream()
-            .filter(u -> u.getName().trim().equalsIgnoreCase(paymentDTO.studentName.trim()))
-            .findFirst();
+        Optional<User> userOpt = Optional.empty();
+        // Buscar por studentId si está presente
+        if (paymentDTO.getStudentId() != null) {
+            userOpt = userService.getUserById(paymentDTO.getStudentId());
+        }
+        // Si no se encuentra por ID, buscar por nombre
+        if (userOpt.isEmpty() && paymentDTO.getStudentName() != null) {
+            userOpt = userService.getAllUsers().stream()
+                .filter(u -> u.getName().trim().equalsIgnoreCase(paymentDTO.getStudentName().trim()))
+                .findFirst();
+        }
         if (userOpt.isEmpty()) {
-            logger.error("Usuario no encontrado para el pago: {}", paymentDTO.studentName);
-            return ResponseEntity.badRequest().body("Usuario no encontrado para el pago: " + paymentDTO.studentName);
+            logger.error("Usuario no encontrado para el pago: {}", paymentDTO.getStudentName());
+            return ResponseEntity.badRequest().body("Usuario no encontrado para el pago: " + paymentDTO.getStudentName());
         }
         try {
             Payment payment = new Payment();
             payment.setUser(userOpt.get());
-            payment.setAmount(paymentDTO.amount);
+            payment.setAmount(paymentDTO.getAmount());
             // Traducción de status si viene en español
-            String status = paymentDTO.status;
+            String status = paymentDTO.getStatus();
             if (status != null) {
                 if (status.equalsIgnoreCase("Pendiente")) status = "PENDING";
                 else if (status.equalsIgnoreCase("Pagado")) status = "PAID";
                 else if (status.equalsIgnoreCase("Paid")) status = "PAID";
             }
             payment.setStatus(status);
-            payment.setDate(parseDateFlexible(paymentDTO.dueDate));
-            payment.setConcept(paymentDTO.concept);
-            payment.setInvoiceNumber(paymentDTO.invoiceNumber);
+            payment.setDate(parseDateFlexible(paymentDTO.getDueDate()));
+            payment.setConcept(paymentDTO.getConcept());
+            payment.setInvoiceNumber(paymentDTO.getInvoiceNumber());
             // Lógica para paidDate
-            if (paymentDTO.paidDate != null && !paymentDTO.paidDate.isEmpty()) {
-                payment.setPaidDate(parseDateFlexible(paymentDTO.paidDate));
+            if (paymentDTO.getPaidDate() != null && !paymentDTO.getPaidDate().isEmpty()) {
+                payment.setPaidDate(parseDateFlexible(paymentDTO.getPaidDate()));
             } else {
                 // Si el estado es PAID y paidDate es null, asignar fecha actual SOLO si el status es exactamente "PAID" (mayúsculas)
                 if ("PAID".equals(payment.getStatus())) {
@@ -138,8 +146,8 @@ public class PaymentController {
         Payment payment = existingOpt.get();
 
         updatePaymentFields(payment, paymentDTO);
-        normalizeAndSetStatus(payment, paymentDTO.status);
-        updatePaidDate(payment, paymentDTO.paidDate);
+        normalizeAndSetStatus(payment, paymentDTO.getStatus());
+        updatePaidDate(payment, paymentDTO.getPaidDate());
 
         Payment saved = paymentService.savePayment(payment);
         Map<String, Object> dto = Map.of(
@@ -156,16 +164,16 @@ public class PaymentController {
     }
 
     private void updatePaymentFields(Payment payment, PaymentDTO paymentDTO) {
-        if (paymentDTO.studentName != null) {
+        if (paymentDTO.getStudentName() != null) {
             Optional<User> userOpt = userService.getAllUsers().stream()
-                .filter(u -> u.getName().trim().equalsIgnoreCase(paymentDTO.studentName.trim()))
+                .filter(u -> u.getName().trim().equalsIgnoreCase(paymentDTO.getStudentName().trim()))
                 .findFirst();
             userOpt.ifPresent(payment::setUser);
         }
-        if (paymentDTO.amount != null) payment.setAmount(paymentDTO.amount);
-        if (paymentDTO.dueDate != null) payment.setDate(parseDateFlexible(paymentDTO.dueDate));
-        if (paymentDTO.concept != null) payment.setConcept(paymentDTO.concept);
-        if (paymentDTO.invoiceNumber != null) payment.setInvoiceNumber(paymentDTO.invoiceNumber);
+        if (paymentDTO.getAmount() != null) payment.setAmount(paymentDTO.getAmount());
+        if (paymentDTO.getDueDate() != null) payment.setDate(parseDateFlexible(paymentDTO.getDueDate()));
+        if (paymentDTO.getConcept() != null) payment.setConcept(paymentDTO.getConcept());
+        if (paymentDTO.getInvoiceNumber() != null) payment.setInvoiceNumber(paymentDTO.getInvoiceNumber());
     }
 
     private void normalizeAndSetStatus(Payment payment, String status) {

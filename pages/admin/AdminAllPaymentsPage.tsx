@@ -152,7 +152,9 @@ const AdminAllPaymentsPage: React.FC = () => {
       if (formState.status === PaymentStatus.Paid) statusToSend = 'Pagado';
       else if (formState.status === PaymentStatus.Overdue) statusToSend = 'Vencido';
       else if (formState.status === PaymentStatus.Processing) statusToSend = 'Procesando';
-      const paymentToSend: any = { ...formState, dueDate: dueDateInput, status: statusToSend };
+      // Buscar el id del estudiante seleccionado
+      const selectedStudent = students.find(s => s.name === formState.studentName);
+      const paymentToSend: any = { ...formState, dueDate: dueDateInput, status: statusToSend, studentId: selectedStudent?.id };
       console.log('paymentToSend', paymentToSend);
       await paymentService.createPayment(paymentToSend);
       setIsModalOpen(false);
