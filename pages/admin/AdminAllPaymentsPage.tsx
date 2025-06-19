@@ -6,10 +6,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Payment, PaymentStatus, Role, User } from '../../types';
 import Button from '../../components/ui/Button'; 
 import { useTranslation } from '../../hooks/useTranslation';
+import { useNavigate } from 'react-router-dom';
 
 const AdminAllPaymentsPage: React.FC = () => {
   const { users } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -268,51 +270,61 @@ const handleEditPayment = async (e: React.FormEvent) => {
 
       <Card title={t('systemWidePaymentRecords')} bodyClassName="overflow-x-auto">
         {filteredAndSortedPayments.length > 0 ? (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('studentName')}</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('gradeClass')}</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('concept')}</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('invoiceNo')}</th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('amount')}</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('dueDate')}</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('paidDate')}</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('status')}</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('modifyStatus')}</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAndSortedPayments.map(payment => (
-                <tr key={payment.id} className="bg-white hover:bg-gray-50 transition-colors duration-150">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{payment.studentName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{payment.grade || t('na')}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{payment.concept}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{payment.invoiceNumber || t('na')}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">${payment.amount.toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(payment.dueDate)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {payment.status && payment.status.toString().toUpperCase() === 'PAID' ? formatDate(payment.paidDate) : t('na')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(payment.status)}`}>
-                          {t(payment.status.toLowerCase() as any)} 
-                        </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm flex gap-2 items-center">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => openEditModal(payment)}
-                      >
-                        {t('edit')}
-                      </Button>
-                      <Button variant="danger" size="sm" onClick={() => handleDeletePayment(payment.id)}>{t('delete')}</Button>
-                    </td>
+          <>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('studentName')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('gradeClass')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('concept')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('invoiceNo')}</th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('amount')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('dueDate')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('paidDate')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('status')}</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('modifyStatus')}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredAndSortedPayments.map(payment => (
+                  <tr key={payment.id} className="bg-white hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{payment.studentName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{payment.grade || t('na')}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{payment.concept}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{payment.invoiceNumber || t('na')}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">${payment.amount.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(payment.dueDate)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {payment.status && payment.status.toString().toUpperCase() === 'PAID' ? formatDate(payment.paidDate) : t('na')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(payment.status)}`}>
+                            {t(payment.status.toLowerCase() as any)} 
+                          </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm flex gap-2 items-center">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => openEditModal(payment)}
+                        >
+                          {t('edit')}
+                        </Button>
+                        <Button variant="danger" size="sm" onClick={() => handleDeletePayment(payment.id)}>{t('delete')}</Button>
+                      </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex justify-end mt-4">
+              <Button
+                variant="primary"
+                onClick={() => navigate('/admin/payments')}
+              >
+                {t('viewAllPayments')}
+              </Button>
+            </div>
+          </>
         ) : (
           <div className="text-center py-10">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 text-gray-400 mx-auto mb-4">
