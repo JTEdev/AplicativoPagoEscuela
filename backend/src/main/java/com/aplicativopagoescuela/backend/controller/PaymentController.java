@@ -64,6 +64,7 @@ public class PaymentController {
             map.put("status", payment.getStatus() != null ? payment.getStatus() : "N/A"); // Asegura que siempre haya un estado
             map.put("invoiceNumber", payment.getInvoiceNumber());
             map.put("grade", payment.getUser() != null && payment.getUser().getGrade() != null ? payment.getUser().getGrade() : "N/A");
+            map.put("userId", payment.getUser() != null ? payment.getUser().getId() : null);
             return map;
         }).toList();
     }
@@ -75,10 +76,23 @@ public class PaymentController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Payment>> getPaymentsByUser(@PathVariable Long userId) {
-        Optional<User> user = userService.getUserById(userId);
-        if (user.isEmpty()) return ResponseEntity.notFound().build();
-        return ResponseEntity.ok(paymentService.getPaymentsByUser(user.get()));
+    public ResponseEntity<List<Map<String, Object>>> getPaymentsByUser(@PathVariable Long userId) {
+        List<Payment> payments = paymentService.getPaymentsByUserId(userId);
+        List<Map<String, Object>> result = payments.stream().map(payment -> {
+            Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", payment.getId());
+            map.put("userId", payment.getUser() != null ? payment.getUser().getId() : null);
+            map.put("studentName", payment.getUser() != null ? payment.getUser().getName() : null);
+            map.put("concept", payment.getConcept());
+            map.put("amount", payment.getAmount());
+            map.put("dueDate", payment.getDate() != null ? payment.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A");
+            map.put("paidDate", payment.getPaidDate() != null ? payment.getPaidDate().toString() : "N/A");
+            map.put("status", payment.getStatus() != null ? payment.getStatus() : "N/A");
+            map.put("invoiceNumber", payment.getInvoiceNumber());
+            map.put("grade", payment.getUser() != null && payment.getUser().getGrade() != null ? payment.getUser().getGrade() : "N/A");
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping
@@ -158,7 +172,8 @@ public class PaymentController {
             "dueDate", saved.getDate() != null ? saved.getDate().toString() : "N/A",
             "paidDate", saved.getPaidDate() != null ? saved.getPaidDate().toString() : "N/A",
             "status", saved.getStatus() != null ? saved.getStatus() : "N/A",
-            "invoiceNumber", saved.getInvoiceNumber()
+            "invoiceNumber", saved.getInvoiceNumber(),
+            "userId", saved.getUser() != null ? saved.getUser().getId() : null
         );
         return ResponseEntity.ok(dto);
     }

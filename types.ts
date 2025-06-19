@@ -7,6 +7,7 @@ export enum PaymentStatus {
 
 export interface Payment {
   id: string;
+  userId: string; // <-- Agregado para filtrar correctamente
   studentName: string;
   concept: string;
   amount: number;

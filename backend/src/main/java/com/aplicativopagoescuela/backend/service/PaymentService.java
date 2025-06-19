@@ -22,8 +22,8 @@ public class PaymentService {
         return paymentRepository.findById(id);
     }
 
-    public List<Payment> getPaymentsByUser(User user) {
-        return paymentRepository.findByUser(user);
+    public List<Payment> getPaymentsByUserId(Long userId) {
+        return paymentRepository.findByUserId(userId);
     }
 
     public Payment savePayment(Payment payment) {

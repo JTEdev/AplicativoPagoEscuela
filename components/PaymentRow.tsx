@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Payment, PaymentStatus } from '../types';
 import Button from './ui/Button';
@@ -65,16 +64,16 @@ const PaymentRow: React.FC<PaymentRowProps> = ({ payment, onPay, onViewReceipt }
         <PaymentStatusBadge status={payment.status} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        {(payment.status === PaymentStatus.Pending || payment.status === PaymentStatus.Overdue) && onPay && (
+        {((payment.status || '').toString().toUpperCase() === 'PENDING' || (payment.status || '').toString().toUpperCase() === 'OVERDUE') && onPay && (
           <Button 
             onClick={() => onPay(payment.id)} 
             size="sm" 
-            variant={payment.status === PaymentStatus.Overdue ? "danger" : "primary"}
+            variant={(payment.status || '').toString().toUpperCase() === 'OVERDUE' ? "danger" : "primary"}
           >
-            {t('makePayment')} {/* Updated from Pay Now */}
+            {t('makePayment')}
           </Button>
         )}
-        {payment.status === PaymentStatus.Paid && onViewReceipt && (
+        {((payment.status || '').toString().toUpperCase() === 'PAID' && onViewReceipt) && (
           <Button onClick={() => onViewReceipt(payment.id)} size="sm" variant="outline">
             {t('viewReceipt')}
           </Button>

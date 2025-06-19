@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Card from '../components/ui/Card';
 import PaymentRow from '../components/PaymentRow';
@@ -14,7 +13,7 @@ const PaymentHistoryPage: React.FC = () => {
   const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState<Payment | null>(null);
 
   const paidPayments = payments
-    .filter(p => p.status === PaymentStatus.Paid)
+    .filter(p => (p.status || '').toString().toUpperCase() === 'PAID')
     .sort((a,b) => new Date(b.paidDate!).getTime() - new Date(a.paidDate!).getTime());
 
   const handleViewReceipt = (paymentId: string) => {
@@ -79,7 +78,7 @@ const PaymentHistoryPage: React.FC = () => {
               
               <div className="border-b pb-2">
                 <p className="text-sm text-gray-500">{t('transactionId')}</p>
-                <p className="font-semibold">{`TRANS-${selectedPaymentForReceipt.id.substring(0,8).toUpperCase()}`}</p>
+                <p className="font-semibold">{`TRANS-${selectedPaymentForReceipt.id.toString().substring(0,8).toUpperCase()}`}</p>
               </div>
               <div className="border-b pb-2">
                 <p className="text-sm text-gray-500">{t('invoiceNo')}</p>

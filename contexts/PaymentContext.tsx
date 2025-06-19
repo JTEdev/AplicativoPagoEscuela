@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
 import { Payment, PaymentStatus } from '../types';
 import { MOCK_PAYMENTS } from '../constants';
-import { getPaymentsByUser } from '../services/paymentService';
+import { getPaymentsByUser, updatePayment } from '../services/paymentService';
 import { useAuth } from './AuthContext';
 
 interface PaymentContextType {
@@ -16,29 +16,45 @@ export const PaymentProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [payments, setPayments] = useState<Payment[]>(MOCK_PAYMENTS);
   const { currentUser } = useAuth();
 
-  useEffect(() => {
-    const fetchPayments = async () => {
-      if (currentUser && currentUser.id) {
-        try {
-          const pagos = await getPaymentsByUser(currentUser.id);
-          setPayments(pagos);
-        } catch (e) {
-          setPayments([]); // O mantener los pagos previos si falla
-        }
-      } else {
+  const fetchPayments = useCallback(async () => {
+    if (currentUser && currentUser.id) {
+      try {
+        const pagos = await getPaymentsByUser(currentUser.id);
+        setPayments(pagos);
+      } catch (e) {
         setPayments([]);
       }
-    };
-    fetchPayments();
+    } else {
+      setPayments([]);
+    }
   }, [currentUser]);
 
-  const updatePaymentStatus = useCallback((paymentId: string, newStatus: PaymentStatus) => {
+  useEffect(() => {
+    fetchPayments();
+  }, [currentUser, fetchPayments]);
+
+  const updatePaymentStatus = useCallback(async (paymentId: string, newStatus: PaymentStatus) => {
     setPayments(prevPayments =>
       prevPayments.map(p =>
         p.id === paymentId ? { ...p, status: newStatus, paidDate: newStatus === PaymentStatus.Paid ? new Date().toISOString().split('T')[0] : p.paidDate } : p
       )
     );
-  }, []);
+    // Actualizar en backend
+    try {
+      const payment = payments.find(p => p.id === paymentId);
+      if (payment) {
+        await updatePayment(paymentId, {
+          ...payment,
+          status: newStatus,
+          paidDate: newStatus === PaymentStatus.Paid ? new Date().toISOString().split('T')[0] : payment.paidDate
+        });
+        // Refrescar pagos desde backend
+        await fetchPayments();
+      }
+    } catch (e) {
+      // Manejo de error opcional
+    }
+  }, [payments, fetchPayments]);
 
   const getPaymentById = useCallback((paymentId: string) => {
     return payments.find(p => p.id === paymentId);

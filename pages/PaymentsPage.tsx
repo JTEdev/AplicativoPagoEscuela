@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Card from '../components/ui/Card';
 import PaymentRow from '../components/PaymentRow';
@@ -16,7 +15,10 @@ const PaymentsPage: React.FC = () => {
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
 
   const pendingPayments = payments.filter(
-    p => p.status === PaymentStatus.Pending || p.status === PaymentStatus.Overdue
+    p => {
+      const status = (p.status || '').toString().toUpperCase();
+      return status === 'PENDING' || status === 'OVERDUE';
+    }
   ).sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
   const handlePay = (paymentId: string) => {

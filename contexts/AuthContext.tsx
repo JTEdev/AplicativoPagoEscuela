@@ -28,7 +28,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState<boolean>(true); // Start true to load initial state
 
   useEffect(() => {
-    // Load users from backend API
+    // Carga usuarios del Backend al iniciar
+    // Esto simula una llamada a una API para obtener los usuarios
     const fetchUsersFromAPI = async () => {
       try {
         const res = await fetch('http://localhost:8080/api/users');
@@ -44,16 +45,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
     fetchUsersFromAPI();
 
-    // Load currentUser from localStorage
+    // Cargar el usuario actual desde localStorage
     const storedCurrentUser = localStorage.getItem('currentUser');
     if (storedCurrentUser) {
       setCurrentUser(JSON.parse(storedCurrentUser));
     }
-    setIsLoading(false); // Done with initial load
+    setIsLoading(false); // Hace que el loading sea false después de cargar usuarios y usuario actual
   }, []);
 
   useEffect(() => {
-    // Persist users to localStorage whenever it changes, but not on initial empty load
+    // Permanecer sincronizado con localStorage
     if (users.length > 0) {
       localStorage.setItem('users', JSON.stringify(users));
     }
@@ -71,7 +72,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = useCallback(async (email: string, passwordAttempt: string): Promise<boolean> => {
     setIsLoading(true);
     return new Promise(resolve => {
-        setTimeout(() => { // Simulate API call
+        setTimeout(() => { // Simula una llamada a la API
             const user = users.find(u => u.email === email && u.password === passwordAttempt);
             if (user) {
                 setCurrentUser(user);
@@ -91,7 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = useCallback(async (name: string, email: string, passwordAttempt: string): Promise<{success: boolean, message?: string}> => {
     setIsLoading(true);
     return new Promise(resolve => {
-        setTimeout(() => { // Simulate API call
+        setTimeout(() => { // Simula una llamada a la API
             if (users.some(u => u.email === email)) {
                 setIsLoading(false);
                 resolve({success: false, message: "User with this email already exists."});
@@ -103,10 +104,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 email,
                 password: passwordAttempt,
                 role: Role.Student, 
-                grade: 'N/A' // Default grade
+                grade: 'N/A' 
             };
             setUsers(prevUsers => [...prevUsers, newUser]);
-            setCurrentUser(newUser); // Auto-login after registration
+            setCurrentUser(newUser); // Autoregistro automático
             setIsLoading(false);
             resolve({success: true});
         }, 500);
@@ -134,13 +135,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUsers(prevUsers => 
       prevUsers.map(user => {
         if (user.id === userId) {
-          // Check if email is being changed and if the new email already exists for another user
+          // Verificar si el email ya existe en otro usuario
           if (updates.email && updates.email !== user.email && prevUsers.some(u => u.id !== userId && u.email === updates.email)) {
-             // This check should ideally be done before calling setUsers, returning an error.
-             // For now, let's log a warning. A proper implementation would throw or return an error.
+             // Esto verifica si el nuevo email ya está en uso por otro usuario.
              console.warn("Attempted to update email to an already existing email for another user.");
-             // To prevent update, we'd need to not map, or handle error outside.
-             // For simplicity, let's assume email conflicts are handled by UI or pre-validation for this mock.
           }
           foundUser = { ...user, ...updates };
           return foundUser;
@@ -149,7 +147,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       })
     );
     if (foundUser) {
-      // If the updated user is the current user, update currentUser as well
+      // Si el usuario actualizado es el actual, actualizar currentUser
       if (currentUser && currentUser.id === userId) {
         setCurrentUser(prev => prev ? ({ ...prev, ...updates }) : null);
       }
@@ -170,8 +168,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <AuthContext.Provider value={{ currentUser, users, isLoading, login, logout, register, isUserAdmin, addUser, updateUser, deleteUser }}>
       {!isLoading && children} 
-      {/* Render children only when not loading initial state to avoid flicker or premature route access */}
-      {/* Or, keep children rendering and let ProtectedRoute handle loading state UI */}
+      {/* Representar a los niños solo si no está cargando */}
+      { /* Esto asegura que los hijos solo se rendericen una vez que el estado inicial esté completamente cargado */}
     </AuthContext.Provider>
   );
 };

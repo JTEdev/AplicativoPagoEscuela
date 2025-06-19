@@ -154,7 +154,12 @@ const AdminAllPaymentsPage: React.FC = () => {
       else if (formState.status === PaymentStatus.Processing) statusToSend = 'Procesando';
       // Buscar el id del estudiante seleccionado
       const selectedStudent = students.find(s => s.name === formState.studentName);
-      const paymentToSend: any = { ...formState, dueDate: dueDateInput, status: statusToSend, studentId: selectedStudent?.id };
+      if (!selectedStudent || !selectedStudent.id) {
+        setFormError('Debes seleccionar un estudiante válido.');
+        setIsSubmitting(false);
+        return;
+      }
+      const paymentToSend: any = { ...formState, dueDate: dueDateInput, status: statusToSend, studentId: selectedStudent.id };
       console.log('paymentToSend', paymentToSend);
       await paymentService.createPayment(paymentToSend);
       setIsModalOpen(false);
