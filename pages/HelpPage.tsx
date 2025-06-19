@@ -53,11 +53,11 @@ const HelpPage: React.FC = () => {
   };
 
   const commonQuestionKeys = [
-    "What are the accepted payment methods?", // Keep these keys as-is, or map them to translation keys if you translate common questions themselves
-    "When is the tuition deadline for next semester?",
-    "How can I get a payment receipt?",
-    "Is there a late fee for payments?",
-    "Who do I contact for billing discrepancies?"
+    "¿Cuáles son los métodos de pago aceptados?",
+    "¿Cuándo es la fecha límite para el pago de la matrícula del próximo semestre?",
+    "¿Cómo puedo obtener un recibo de pago?",
+    "¿Hay algúna mora por pago atrasado?",
+    "¿Con quién me comunico si tengo problemas en la facturación?"
   ];
 
   const handleCommonQuestionClick = (q: string) => {
@@ -143,8 +143,8 @@ const HelpPage: React.FC = () => {
              <Card title={t('contactSupport')}>
                 <p className="text-gray-700 mb-2">{t('contactSupportMessage')}</p>
                 <ul className="text-sm text-gray-600 space-y-1">
-                    <li><strong>{t('emailLabel')}</strong> finance@school.edu</li>
-                    <li><strong>{t('phoneLabel')}</strong> (123) 456-7890</li>
+                    <li><strong>{t('emailLabel')}</strong> reinobritanico@school.edu</li>
+                    <li><strong>{t('phoneLabel')}</strong> (01) 456-7890</li>
                     <li><strong>{t('officeHoursLabel')}</strong> {t('officeHoursTime')}</li>
                 </ul>
             </Card>

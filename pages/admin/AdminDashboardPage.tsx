@@ -7,6 +7,8 @@ import Button from '../../components/ui/Button';
 import { useTranslation } from '../../hooks/useTranslation';
 import * as paymentService from '../../services/paymentService';
 
+const USERS_API_URL = 'http://localhost:8080/api/users';
+
 const getStatusClass = (status: string) => {
   switch (status?.toString().toUpperCase()) {
     case 'PAID':
@@ -27,17 +29,30 @@ const getStatusClass = (status: string) => {
 };
 
 const AdminDashboardPage: React.FC = () => {
-  const { currentUser, users } = useAuth();
+  const { currentUser } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [users, setUsers] = useState<any[]>([]); // Puede ser User[]
   const { t } = useTranslation();
 
   useEffect(() => {
     paymentService.getAllPayments().then(setPayments);
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(USERS_API_URL);
+      if (!res.ok) throw new Error('Error al obtener usuarios');
+      const data = await res.json();
+      setUsers(data);
+    } catch (err) {
+      setUsers([]);
+    }
+  };
 
   const totalPaymentsCount = payments.length;
   const totalAmountCollected = payments
-    .filter(p => p.status === PaymentStatus.Paid)
+    .filter(p => p.status === 'Paid' || p.status === 'PAID' || p.status === 'Pagado' || p.status === PaymentStatus.Paid)
     .reduce((sum, p) => sum + p.amount, 0);
 
   const totalUsers = users.length;
