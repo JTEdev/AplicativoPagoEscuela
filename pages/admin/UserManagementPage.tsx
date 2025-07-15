@@ -52,6 +52,7 @@ const UserManagementPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<User | null>(null);
+  const [viewingUser, setViewingUser] = useState<User | null>(null);
 
   // Obtener usuarios al cargar
   useEffect(() => {
@@ -265,7 +266,7 @@ const UserManagementPage: React.FC = () => {
               <div className="border-t border-blue-200 my-2"></div>
               {/* Botones de acción */}
               <div className="flex gap-3 mt-4">
-                <Button variant="outline" size="md" className="flex-1 flex items-center justify-center gap-2 border-blue-400 text-blue-600 hover:bg-blue-50" onClick={() => {/* Aquí puedes abrir modal o navegar a detalle */}}>
+                <Button variant="outline" size="md" className="flex-1 flex items-center justify-center gap-2 border-blue-400 text-blue-600 hover:bg-blue-50" onClick={() => setViewingUser(user)}>
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5S21.75 12 21.75 12s-3.75 7.5-9.75 7.5S2.25 12 2.25 12z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 15a3 3 0 100-6 3 3 0 000 6z" /></svg>
                   Ver
                 </Button>
@@ -368,6 +369,61 @@ const UserManagementPage: React.FC = () => {
             </svg>
             <h2 className="text-xl font-semibold text-gray-800">{t('confirmDeleteTitle')}</h2>
             <p className="text-gray-600 mt-2">{t('confirmDeleteMessage')}</p>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal de visualización de usuario */}
+      {viewingUser && (
+        <Modal
+          isOpen={!!viewingUser}
+          onClose={() => setViewingUser(null)}
+          title={`Detalles de usuario: ${viewingUser.name}`}
+          size="md"
+          footer={<Button variant="secondary" onClick={() => setViewingUser(null)}>Cerrar</Button>}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="bg-gradient-to-br from-blue-400 to-blue-200 text-white rounded-full w-12 h-12 flex items-center justify-center text-2xl font-bold shadow">
+                <svg xmlns='http://www.w3.org/2000/svg' className='w-7 h-7' fill='none' viewBox='0 0 24 24' strokeWidth={1.5} stroke='currentColor'><path strokeLinecap='round' strokeLinejoin='round' d='M12 14.25c2.485 0 4.5-2.015 4.5-4.5S14.485 5.25 12 5.25 7.5 7.265 7.5 9.75s2.015 4.5 4.5 4.5zm0 0c-3.375 0-6.75 1.687-6.75 3.75v.375a.75.75 0 00.75.75h12a.75.75 0 00.75-.75v-.375c0-2.063-3.375-3.75-6.75-3.75z' /></svg>
+              </div>
+              <div>
+                <div className="font-bold text-lg text-gray-800 leading-tight">{viewingUser.name}</div>
+                <div className="text-xs text-blue-600 font-semibold">ID: {viewingUser.id}</div>
+              </div>
+            </div>
+            <div className="flex gap-2 items-center mb-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">Activo</span>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${viewingUser.role === Role.Admin ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{viewingUser.role}</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="text-sm text-gray-500">Correo</div>
+                <div className="font-medium text-gray-800">{viewingUser.email}</div>
+              </div>
+              {viewingUser.grade && (
+                <div>
+                  <div className="text-sm text-gray-500">Grado</div>
+                  <div className="font-medium text-gray-800">{viewingUser.grade}</div>
+                </div>
+              )}
+              {viewingUser.phone && (
+                <div>
+                  <div className="text-sm text-gray-500">Teléfono</div>
+                  <div className="font-medium text-gray-800">{viewingUser.phone}</div>
+                </div>
+              )}
+              {viewingUser.address && (
+                <div>
+                  <div className="text-sm text-gray-500">Dirección</div>
+                  <div className="font-medium text-gray-800">{viewingUser.address}</div>
+                </div>
+              )}
+            </div>
+            <div className="border-t border-blue-200 my-2"></div>
+            <div className="flex flex-col gap-1 text-xs text-gray-400">
+              <span>Última actualización: {new Date().toLocaleDateString()}</span>
+            </div>
           </div>
         </Modal>
       )}
