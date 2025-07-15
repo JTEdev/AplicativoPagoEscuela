@@ -1,4 +1,3 @@
-
 import { Payment, PaymentStatus, Student } from './types';
 
 export const MOCK_STUDENT: Student = {
@@ -17,6 +16,7 @@ export const MOCK_PAYMENTS: Payment[] = [
     dueDate: '2024-09-05',
     status: PaymentStatus.Pending,
     invoiceNumber: 'INV-2024-09-001',
+    userId: MOCK_STUDENT.id,
   },
   {
     id: 'payment-002',
@@ -26,6 +26,7 @@ export const MOCK_PAYMENTS: Payment[] = [
     dueDate: '2024-08-20',
     status: PaymentStatus.Overdue,
     invoiceNumber: 'INV-2024-08-123',
+    userId: MOCK_STUDENT.id,
   },
   {
     id: 'payment-003',
@@ -36,6 +37,7 @@ export const MOCK_PAYMENTS: Payment[] = [
     paidDate: '2024-07-10',
     status: PaymentStatus.Paid,
     invoiceNumber: 'INV-2024-07-088',
+    userId: MOCK_STUDENT.id,
   },
   {
     id: 'payment-004',
@@ -46,6 +48,7 @@ export const MOCK_PAYMENTS: Payment[] = [
     paidDate: '2024-08-01',
     status: PaymentStatus.Paid,
     invoiceNumber: 'INV-2024-08-001',
+    userId: MOCK_STUDENT.id,
   },
   {
     id: 'payment-005',
@@ -55,6 +58,7 @@ export const MOCK_PAYMENTS: Payment[] = [
     dueDate: '2024-09-15',
     status: PaymentStatus.Pending,
     invoiceNumber: 'INV-2024-09-205',
+    userId: MOCK_STUDENT.id,
   },
   {
     id: 'payment-006',
@@ -64,10 +68,11 @@ export const MOCK_PAYMENTS: Payment[] = [
     dueDate: '2024-10-01',
     status: PaymentStatus.Pending,
     invoiceNumber: 'INV-2024-10-030',
+    userId: MOCK_STUDENT.id,
   }
 ];
 
 export const API_KEY_WARNING = "Gemini API Key not found. Please set the `process.env.API_KEY` environment variable for the Help Center to function.";
-export const GEMINI_MODEL_TEXT = 'gemini-2.5-flash-preview-04-17';
+export const GEMINI_MODEL_TEXT = 'gemini-2.0-flash';
 export const GEMINI_SYSTEM_INSTRUCTION = "You are a friendly and helpful assistant for a private school's payment portal. Answer questions related to tuition, fees, payment procedures, deadlines, and school financial policies. Be concise, clear, and polite. If you don't know the answer, say so rather than making one up. Format important details like dates or amounts clearly. Avoid giving financial advice beyond explaining school policies.";
 
