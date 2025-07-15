@@ -1,17 +1,19 @@
 import { Payment } from '../types';
 
-const API_URL = 'http://localhost:8080/api/payments';
+export const API_URL = 'http://localhost:8080/api/payments';
 
 export async function getAllPayments(): Promise<Payment[]> {
   const res = await fetch(API_URL);
   if (!res.ok) throw new Error('Error al obtener pagos');
-  return res.json();
+  const pagos = await res.json();
+  return pagos.map((p: any) => ({ ...p, userId: p.studentId }));
 }
 
 export async function getPaymentsByUser(userId: string | number): Promise<Payment[]> {
   const res = await fetch(`${API_URL}/user/${userId}`);
   if (!res.ok) throw new Error('Error al obtener pagos del usuario');
-  return res.json();
+  const pagos = await res.json();
+  return pagos.map((p: any) => ({ ...p, userId: p.studentId }));
 }
 
 export async function createPayment(payment: Partial<Payment>): Promise<Payment> {

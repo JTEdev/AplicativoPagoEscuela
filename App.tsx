@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { HashRouter, Routes, Route, NavLink, useLocation, Navigate, Outlet, useNavigate } from 'react-router-dom';
+import SuccessPage from './pages/success';
 import DashboardPage from './pages/DashboardPage';
 import PaymentsPage from './pages/PaymentsPage';
 import PaymentHistoryPage from './pages/PaymentHistoryPage';
@@ -12,7 +12,7 @@ import AdminAllPaymentsPage from './pages/admin/AdminAllPaymentsPage';
 import UserManagementPage from './pages/admin/UserManagementPage';
 import { PaymentProvider } from './contexts/PaymentContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { LocaleProvider, useLocale } from './contexts/LocaleContext'; // Import LocaleProvider and useLocale
+import { LocaleProvider } from './contexts/LocaleContext'; // Import LocaleProvider
 import { useTranslation } from './hooks/useTranslation'; // Import useTranslation
 import ProtectedRoute from './components/ProtectedRoute';
 import { Role, Language } from './types'; // Import Language
@@ -98,7 +98,6 @@ const Header: React.FC = () => {
 };
 
 const SidebarNav: React.FC = () => {
-  const location = useLocation();
   const { currentUser } = useAuth();
   const { t } = useTranslation();
 
@@ -201,7 +200,7 @@ const AppContent: React.FC = () => {
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegistrationPage />} />
-      
+      <Route path="/success" element={<SuccessPage />} />
       {/* Routes within the main layout */}
       <Route element={<MainLayout />}>
         {/* Student Routes */}
@@ -212,31 +211,27 @@ const AppContent: React.FC = () => {
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/history" element={<PaymentHistoryPage />} />
         </Route>
-
         {/* Admin Routes */}
         <Route element={<ProtectedRoute allowedRoles={[Role.Admin]} />}>
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
           <Route path="/admin/all-payments" element={<AdminAllPaymentsPage />} />
           <Route path="/admin/user-management" element={<UserManagementPage />} />
         </Route>
-        
         {/* Common Protected Routes */}
-         <Route element={<ProtectedRoute allowedRoles={[Role.Student, Role.Admin]} />}>
+        <Route element={<ProtectedRoute allowedRoles={[Role.Student, Role.Admin]} />}>
           <Route path="/help" element={<HelpPage />} />
         </Route>
       </Route>
-      
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
 
-
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <PaymentProvider>
-        <LocaleProvider> {/* Added LocaleProvider */}
+        <LocaleProvider>
           <HashRouter>
             <AppContent />
           </HashRouter>

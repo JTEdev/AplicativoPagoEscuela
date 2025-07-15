@@ -3,6 +3,7 @@ package com.aplicativopagoescuela.backend.service;
 import com.aplicativopagoescuela.backend.model.User;
 import com.aplicativopagoescuela.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -13,6 +14,8 @@ public class UserService {
     @Autowired
     private UserRepository userRepository;
 
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
@@ -22,10 +25,24 @@ public class UserService {
     }
 
     public User saveUser(User user) {
+        // Encriptar la contraseña antes de guardar
+        if (user.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
         return userRepository.save(user);
     }
 
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
+    }
+
+    public void encryptExistingPasswords() {
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            if (user.getPassword() != null && !user.getPassword().startsWith("$2a$")) { // Verificar si ya está encriptada
+                user.setPassword(passwordEncoder.encode(user.getPassword()));
+                userRepository.save(user);
+            }
+        }
     }
 }

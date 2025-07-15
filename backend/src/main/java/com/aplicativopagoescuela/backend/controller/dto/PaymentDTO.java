@@ -1,6 +1,9 @@
 package com.aplicativopagoescuela.backend.controller.dto;
 
 public class PaymentDTO {
+    private Long id;
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     private Long studentId; // <-- Agregado para recibir el ID del estudiante
     private String studentName;
     private String concept;

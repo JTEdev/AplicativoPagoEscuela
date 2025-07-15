@@ -113,8 +113,10 @@ const AdminAllPaymentsPage: React.FC = () => {
     }
 
     return filtered.sort((a, b) => {
-      if (a.studentName.toLowerCase() < b.studentName.toLowerCase()) return -1;
-      if (a.studentName.toLowerCase() > b.studentName.toLowerCase()) return 1;
+      const nameA = (a.studentName || '').toLowerCase();
+      const nameB = (b.studentName || '').toLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
       return new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime();
     });
   }, [payments, selectedStudentId, users]);
@@ -152,14 +154,14 @@ const AdminAllPaymentsPage: React.FC = () => {
       if (formState.status === PaymentStatus.Paid) statusToSend = 'Pagado';
       else if (formState.status === PaymentStatus.Overdue) statusToSend = 'Vencido';
       else if (formState.status === PaymentStatus.Processing) statusToSend = 'Procesando';
-      // Buscar el id del estudiante seleccionado
-      const selectedStudent = students.find(s => s.name === formState.studentName);
+      // Buscar el estudiante por id seleccionado
+      const selectedStudent = students.find(s => s.id == formState.studentId);
       if (!selectedStudent || !selectedStudent.id) {
         setFormError('Debes seleccionar un estudiante válido.');
         setIsSubmitting(false);
         return;
       }
-      const paymentToSend: any = { ...formState, dueDate: dueDateInput, status: statusToSend, studentId: selectedStudent.id };
+      const paymentToSend: any = { ...formState, dueDate: dueDateInput, status: statusToSend, studentId: selectedStudent.id, studentName: selectedStudent.name };
       console.log('paymentToSend', paymentToSend);
       await paymentService.createPayment(paymentToSend);
       setIsModalOpen(false);
@@ -296,7 +298,7 @@ const handleEditPayment = async (e: React.FormEvent) => {
                 {filteredAndSortedPayments.map(payment => (
                   <tr key={payment.id} className="bg-white hover:bg-gray-50 transition-colors duration-150">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{payment.studentName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{payment.grade || t('na')}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{payment.grade || getStudentGrade(payment.studentName)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{payment.concept}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{payment.invoiceNumber || t('na')}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">${payment.amount.toFixed(2)}</td>
@@ -355,12 +357,15 @@ const handleEditPayment = async (e: React.FormEvent) => {
                 <label className="block text-sm font-medium text-gray-700">{t('studentName')}</label>
                 <select
                   required
-                  value={formState.studentName || ''}
-                  onChange={e => setFormState(f => ({ ...f, studentName: e.target.value }))}
+                  value={formState.studentId || ''}
+                  onChange={e => {
+                    const selected = students.find(s => s.id === e.target.value);
+                    setFormState(f => ({ ...f, studentId: e.target.value, studentName: selected ? selected.name : '' }));
+                  }}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                 >
                   <option value="">{t('selectStudent')}</option>
-                  {students.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                  {students.map(s => <option key={s.id} value={s.id}>{s.name} ({s.id})</option>)}
                 </select>
               </div>
               <div>

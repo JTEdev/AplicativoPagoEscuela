@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
+import { API_URL } from '../services/paymentService';
 import Card from '../components/ui/Card';
 import PaymentRow from '../components/PaymentRow';
-import { usePayments } from '../contexts/PaymentContext';
-import { PaymentStatus, Payment } from '../types';
+import { usePayments } from '../hooks/usePayments';
+import { PaymentStatus } from '../types';
 import Button from '../components/ui/Button';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import { useTranslation } from '../hooks/useTranslation'; // Import useTranslation
+import { useTranslation } from '../hooks/useTranslation';
+import { useAuth } from '../contexts/AuthContext';
 
 const PaymentsPage: React.FC = () => {
-  const { payments, updatePaymentStatus } = usePayments();
-  const { t } = useTranslation(); // Use translation hook
+  const { currentUser } = useAuth();
+  const { payments, markPaymentAsPaid } = usePayments(currentUser?.id || '');
+  const { t } = useTranslation();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(null);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
@@ -17,26 +20,31 @@ const PaymentsPage: React.FC = () => {
   const pendingPayments = payments.filter(
     p => {
       const status = (p.status || '').toString().toUpperCase();
-      return status === 'PENDING' || status === 'OVERDUE';
+      return status !== 'PAGADO' && (status === 'PENDING' || status === 'OVERDUE' || status === 'PENDIENTE'.toUpperCase() || status === 'VENCIDO'.toUpperCase());
     }
   ).sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
-  const handlePay = (paymentId: string) => {
+  const handlePay = async (paymentId: string) => {
     setSelectedPaymentId(paymentId);
-    setShowConfirmation(true);
-  };
-
-  const confirmPayment = () => {
-    if (selectedPaymentId) {
-      setShowConfirmation(false);
-      setProcessingPaymentId(selectedPaymentId);
-      updatePaymentStatus(selectedPaymentId, PaymentStatus.Processing);
-
-      setTimeout(() => {
-        updatePaymentStatus(selectedPaymentId, PaymentStatus.Paid);
-        setProcessingPaymentId(null);
-        setSelectedPaymentId(null); 
-      }, 2000);
+    setProcessingPaymentId(paymentId);
+    try {
+      // Llamar al backend para crear la orden de PayPal
+      const res = await fetch(`${API_URL}/${paymentId}/paypal-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) throw new Error('Error creando la orden de PayPal');
+      const data = await res.json();
+      if (data.approvalUrl) {
+        window.location.href = data.approvalUrl;
+        await markPaymentAsPaid(paymentId); // Actualizar estado después del pago
+      } else {
+        throw new Error('No se recibió la URL de aprobación de PayPal');
+      }
+    } catch (err) {
+      console.error('Error al procesar el pago:', err);
+    } finally {
+      setProcessingPaymentId(null);
     }
   };
 
@@ -99,7 +107,7 @@ const PaymentsPage: React.FC = () => {
             </p>
             <div className="flex justify-end space-x-3">
               <Button variant="secondary" onClick={() => setShowConfirmation(false)}>{t('cancel')}</Button>
-              <Button variant="success" onClick={confirmPayment}>{t('confirmAndPay')}</Button>
+              {/* <Button variant="success" onClick={confirmPayment}>{t('confirmAndPay')}</Button> */}
             </div>
           </Card>
         </div>

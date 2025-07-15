@@ -2,7 +2,6 @@ package com.aplicativopagoescuela.backend.controller;
 
 import com.aplicativopagoescuela.backend.model.User;
 import com.aplicativopagoescuela.backend.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,8 +11,11 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
+
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
 
     @GetMapping
     public List<User> getAllUsers() {
@@ -36,14 +38,17 @@ public class UserController {
         Optional<User> existingOpt = userService.getUserById(id);
         if (existingOpt.isEmpty()) return ResponseEntity.notFound().build();
         User existing = existingOpt.get();
-        // Solo actualiza los campos enviados (excepto password)
+        // Actualiza los campos enviados
         existing.setName(user.getName());
         existing.setEmail(user.getEmail());
         existing.setRole(user.getRole());
         existing.setGrade(user.getGrade());
         existing.setPhone(user.getPhone());
         existing.setAddress(user.getAddress());
-        // No actualiza password aquí
+        // Actualiza la contraseña si se envía
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            existing.setPassword(user.getPassword());
+        }
         return ResponseEntity.ok(userService.saveUser(existing));
     }
 

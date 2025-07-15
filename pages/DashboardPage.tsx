@@ -15,17 +15,20 @@ const DashboardPage: React.FC = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   // Filtrar pagos del usuario actual por userId
-  const studentPayments = payments.filter(p => p.userId === currentUser?.id);
+  const studentPayments = payments.filter(p => p.studentId == currentUser?.id);
 
   // Filtro insensible a mayúsculas para status
   const pendingPayments = studentPayments.filter(p => {
     const status = (p.status || '').toString().toUpperCase();
-    return status === 'PENDING' || status === 'OVERDUE';
+    return status === 'PENDING' || status === 'OVERDUE' || status === 'PENDIENTE'.toUpperCase() || status === 'VENCIDO'.toUpperCase();
   });
   const totalDue = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
   
   const upcomingPayments = pendingPayments
-    .filter(p => (p.status || '').toString().toUpperCase() === 'PENDING')
+    .filter(p => {
+      const status = (p.status || '').toString().toUpperCase();
+      return status === 'PENDING' || status === 'PENDIENTE'.toUpperCase();
+    })
     .sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 3);
 

@@ -64,11 +64,11 @@ const PaymentRow: React.FC<PaymentRowProps> = ({ payment, onPay, onViewReceipt }
         <PaymentStatusBadge status={payment.status} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-        {((payment.status || '').toString().toUpperCase() === 'PENDING' || (payment.status || '').toString().toUpperCase() === 'OVERDUE') && onPay && (
+        {(['PENDING', 'OVERDUE', 'PENDIENTE', 'VENCIDO'].includes((payment.status || '').toString().toUpperCase()) && onPay) && (
           <Button 
             onClick={() => onPay(payment.id)} 
             size="sm" 
-            variant={(payment.status || '').toString().toUpperCase() === 'OVERDUE' ? "danger" : "primary"}
+            variant={['OVERDUE', 'VENCIDO'].includes((payment.status || '').toString().toUpperCase()) ? "danger" : "primary"}
           >
             {t('makePayment')}
           </Button>

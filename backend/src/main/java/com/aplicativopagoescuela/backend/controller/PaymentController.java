@@ -1,5 +1,13 @@
+
 package com.aplicativopagoescuela.backend.controller;
 
+import org.springframework.http.HttpEntity;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 import com.aplicativopagoescuela.backend.model.Payment;
 import com.aplicativopagoescuela.backend.model.User;
 import com.aplicativopagoescuela.backend.service.PaymentService;
@@ -7,9 +15,6 @@ import com.aplicativopagoescuela.backend.service.UserService;
 import com.aplicativopagoescuela.backend.controller.dto.PaymentDTO;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -19,15 +24,75 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/payments")
 public class PaymentController {
-    private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
-    private final PaymentService paymentService;
-    private final UserService userService;
-
-    public PaymentController(PaymentService paymentService, UserService userService) {
-        this.paymentService = paymentService;
-        this.userService = userService;
+    @Value("${paypal.client-id}")
+    private String paypalClientId;
+    @Value("${paypal.client-secret}")
+    private String paypalClientSecret;
+    @Value("${paypal.base-url}")
+    private String paypalBaseUrl;
+    @PostMapping
+    public ResponseEntity<PaymentDTO> createPayment(@RequestBody PaymentDTO dto) {
+        Payment payment = new Payment();
+        payment.setAmount(dto.getAmount());
+        payment.setConcept(dto.getConcept());
+        payment.setStatus(dto.getStatus());
+        payment.setInvoiceNumber(dto.getInvoiceNumber());
+        payment.setPaidDate(dto.getPaidDate() != null && !dto.getPaidDate().isEmpty() ? LocalDate.parse(dto.getPaidDate()) : null);
+        payment.setDate(dto.getDueDate() != null && !dto.getDueDate().isEmpty() ? LocalDate.parse(dto.getDueDate()) : null);
+        // Asignar usuario si se envía studentId
+        if (dto.getStudentId() != null) {
+            Optional<User> userOpt = userService.getUserById(dto.getStudentId());
+            userOpt.ifPresent(payment::setUser);
+        }
+        Payment saved = paymentService.savePayment(payment);
+        PaymentDTO responseDto = new PaymentDTO();
+        responseDto.setId(saved.getId());
+        responseDto.setAmount(saved.getAmount());
+        responseDto.setConcept(saved.getConcept());
+        responseDto.setStatus(saved.getStatus());
+        responseDto.setInvoiceNumber(saved.getInvoiceNumber());
+        responseDto.setPaidDate(saved.getPaidDate() != null ? saved.getPaidDate().toString() : null);
+        responseDto.setDueDate(saved.getDate() != null ? saved.getDate().toString() : null);
+        if (saved.getUser() != null) {
+            responseDto.setStudentId(saved.getUser().getId());
+            responseDto.setStudentName(saved.getUser().getName());
+        }
+        return ResponseEntity.ok(responseDto);
     }
-
+    @PutMapping("/{id}")
+    public ResponseEntity<PaymentDTO> updatePayment(@PathVariable Long id, @RequestBody PaymentDTO dto) {
+        Optional<Payment> paymentOpt = paymentService.getPaymentById(id);
+        if (paymentOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Payment payment = paymentOpt.get();
+        payment.setAmount(dto.getAmount());
+        payment.setConcept(dto.getConcept());
+        payment.setStatus(dto.getStatus());
+        payment.setInvoiceNumber(dto.getInvoiceNumber());
+        payment.setPaidDate(dto.getPaidDate() != null && !dto.getPaidDate().isEmpty() ? LocalDate.parse(dto.getPaidDate()) : null);
+        payment.setDate(dto.getDueDate() != null && !dto.getDueDate().isEmpty() ? LocalDate.parse(dto.getDueDate()) : null);
+        // Si se envía studentId, actualizar el usuario
+        if (dto.getStudentId() != null) {
+            Optional<User> userOpt = userService.getUserById(dto.getStudentId());
+            userOpt.ifPresent(payment::setUser);
+        }
+        Payment updated = paymentService.savePayment(payment);
+        // Mapear a DTO para respuesta
+        PaymentDTO responseDto = new PaymentDTO();
+        responseDto.setId(updated.getId());
+        responseDto.setAmount(updated.getAmount());
+        responseDto.setConcept(updated.getConcept());
+        responseDto.setStatus(updated.getStatus());
+        responseDto.setInvoiceNumber(updated.getInvoiceNumber());
+        responseDto.setPaidDate(updated.getPaidDate() != null ? updated.getPaidDate().toString() : null);
+        responseDto.setDueDate(updated.getDate() != null ? updated.getDate().toString() : null);
+        if (updated.getUser() != null) {
+            responseDto.setStudentId(updated.getUser().getId());
+            responseDto.setStudentName(updated.getUser().getName());
+        }
+        return ResponseEntity.ok(responseDto);
+    }
     private LocalDate parseDateFlexible(String dateStr) {
         if (dateStr == null || dateStr.isEmpty()) return null;
         try {
@@ -47,149 +112,127 @@ public class PaymentController {
             }
         }
     }
+    private static final Logger logger = LoggerFactory.getLogger(PaymentController.class);
+    private final PaymentService paymentService;
+    private final UserService userService;
 
-    @GetMapping
-    public List<Map<String, Object>> getAllPayments() {
-        List<Payment> payments = paymentService.getAllPayments();
-        logger.info("Pagos encontrados en la base de datos: {}", payments.size());
-        payments.forEach(p -> logger.info("Pago: id={}, user={}, concept={}, amount={}", p.getId(), p.getUser() != null ? p.getUser().getName() : "null", p.getConcept(), p.getAmount()));
-        return payments.stream().map(payment -> {
-            Map<String, Object> map = new java.util.HashMap<>();
-            map.put("id", payment.getId());
-            map.put("studentName", payment.getUser() != null ? payment.getUser().getName() : null);
-            map.put("concept", payment.getConcept());
-            map.put("amount", payment.getAmount());
-            map.put("dueDate", payment.getDate() != null ? payment.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A"); // Siempre yyyy-MM-dd
-            map.put("paidDate", payment.getPaidDate() != null ? payment.getPaidDate().toString() : "N/A"); // Mostrar N/A si es null
-            map.put("status", payment.getStatus() != null ? payment.getStatus() : "N/A"); // Asegura que siempre haya un estado
-            map.put("invoiceNumber", payment.getInvoiceNumber());
-            map.put("grade", payment.getUser() != null && payment.getUser().getGrade() != null ? payment.getUser().getGrade() : "N/A");
-            map.put("userId", payment.getUser() != null ? payment.getUser().getId() : null);
-            return map;
-        }).toList();
+    public PaymentController(PaymentService paymentService, UserService userService) {
+        this.paymentService = paymentService;
+        this.userService = userService;
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Payment> getPaymentById(@PathVariable Long id) {
-        Optional<Payment> payment = paymentService.getPaymentById(id);
-        return payment.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Map<String, Object>>> getPaymentsByUser(@PathVariable Long userId) {
-        List<Payment> payments = paymentService.getPaymentsByUserId(userId);
-        List<Map<String, Object>> result = payments.stream().map(payment -> {
-            Map<String, Object> map = new java.util.HashMap<>();
-            map.put("id", payment.getId());
-            map.put("userId", payment.getUser() != null ? payment.getUser().getId() : null);
-            map.put("studentName", payment.getUser() != null ? payment.getUser().getName() : null);
-            map.put("concept", payment.getConcept());
-            map.put("amount", payment.getAmount());
-            map.put("dueDate", payment.getDate() != null ? payment.getDate().format(DateTimeFormatter.ISO_LOCAL_DATE) : "N/A");
-            map.put("paidDate", payment.getPaidDate() != null ? payment.getPaidDate().toString() : "N/A");
-            map.put("status", payment.getStatus() != null ? payment.getStatus() : "N/A");
-            map.put("invoiceNumber", payment.getInvoiceNumber());
-            map.put("grade", payment.getUser() != null && payment.getUser().getGrade() != null ? payment.getUser().getGrade() : "N/A");
-            return map;
-        }).toList();
-        return ResponseEntity.ok(result);
-    }
-
-    @PostMapping
-    public ResponseEntity<Object> createPayment(@RequestBody PaymentDTO paymentDTO) {
-        logger.info("Intentando crear pago: {}", paymentDTO);
-        Optional<User> userOpt = Optional.empty();
-        // Buscar por studentId si está presente
-        if (paymentDTO.getStudentId() != null) {
-            userOpt = userService.getUserById(paymentDTO.getStudentId());
+    @PostMapping("/{id}/paypal-order")
+    public ResponseEntity<?> createPaypalOrder(@PathVariable Long id) {
+        Optional<Payment> paymentOpt = paymentService.getPaymentById(id);
+        if (paymentOpt.isEmpty()) {
+            return ResponseEntity.status(404).body(Map.of("error", "Pago no encontrado"));
         }
-        // Si no se encuentra por ID, buscar por nombre
-        if (userOpt.isEmpty() && paymentDTO.getStudentName() != null) {
-            userOpt = userService.getAllUsers().stream()
-                .filter(u -> u.getName().trim().equalsIgnoreCase(paymentDTO.getStudentName().trim()))
-                .findFirst();
-        }
-        if (userOpt.isEmpty()) {
-            logger.error("Usuario no encontrado para el pago: {}", paymentDTO.getStudentName());
-            return ResponseEntity.badRequest().body("Usuario no encontrado para el pago: " + paymentDTO.getStudentName());
-        }
+        Payment payment = paymentOpt.get();
         try {
-            Payment payment = new Payment();
-            payment.setUser(userOpt.get());
-            payment.setAmount(paymentDTO.getAmount());
-            // Traducción de status si viene en español
-            String status = paymentDTO.getStatus();
-            if (status != null) {
-                if (status.equalsIgnoreCase("Pendiente")) status = "PENDING";
-                else if (status.equalsIgnoreCase("Pagado")) status = "PAID";
-                else if (status.equalsIgnoreCase("Paid")) status = "PAID";
+            // Leer credenciales y URL de PayPal desde application.properties
+            String clientId = paypalClientId;
+            String clientSecret = paypalClientSecret;
+            String baseUrl = paypalBaseUrl;
+
+            // 1. Obtener access token
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders tokenHeaders = new HttpHeaders();
+            tokenHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            tokenHeaders.setBasicAuth(clientId, clientSecret);
+            HttpEntity<String> tokenEntity = new HttpEntity<>("grant_type=client_credentials", tokenHeaders);
+            ResponseEntity<Map<String, Object>> tokenResponse = restTemplate.postForEntity(baseUrl + "/v1/oauth2/token", tokenEntity, (Class<Map<String, Object>>)(Class<?>)Map.class);
+            String accessToken = tokenResponse.getBody() != null ? (String) tokenResponse.getBody().get("access_token") : null;
+            if (accessToken == null) {
+                return ResponseEntity.status(500).body(Map.of("error", "No se pudo obtener el access token de PayPal"));
             }
-            payment.setStatus(status);
-            payment.setDate(parseDateFlexible(paymentDTO.getDueDate()));
-            payment.setConcept(paymentDTO.getConcept());
-            payment.setInvoiceNumber(paymentDTO.getInvoiceNumber());
-            // Lógica para paidDate
-            if (paymentDTO.getPaidDate() != null && !paymentDTO.getPaidDate().isEmpty()) {
-                payment.setPaidDate(parseDateFlexible(paymentDTO.getPaidDate()));
-            } else {
-                // Si el estado es PAID y paidDate es null, asignar fecha actual SOLO si el status es exactamente "PAID" (mayúsculas)
-                if ("PAID".equals(payment.getStatus())) {
-                    payment.setPaidDate(LocalDate.now());
-                } else {
-                    payment.setPaidDate(null);
+
+            // 2. Crear la orden de pago
+            HttpHeaders orderHeaders = new HttpHeaders();
+            orderHeaders.setContentType(MediaType.APPLICATION_JSON);
+            orderHeaders.setBearerAuth(accessToken);
+
+            Map<String, Object> purchaseUnit = Map.of(
+                "amount", Map.of(
+                    "currency_code", "USD",
+                    "value", String.format(java.util.Locale.US, "%.2f", payment.getAmount())
+                ),
+                "description", payment.getConcept()
+            );
+            Map<String, Object> orderBody = Map.of(
+                "intent", "CAPTURE",
+                "purchase_units", List.of(purchaseUnit),
+                "application_context", Map.of(
+                    "return_url", "http://localhost:5173/success",
+                    "cancel_url", "http://localhost:5173/cancel"
+                )
+            );
+            HttpEntity<Map<String, Object>> orderEntity = new HttpEntity<>(orderBody, orderHeaders);
+            ResponseEntity<Map<String, Object>> orderResponse = restTemplate.postForEntity(baseUrl + "/v2/checkout/orders", orderEntity, (Class<Map<String, Object>>)(Class<?>)Map.class);
+            Object linksObj = orderResponse.getBody() != null ? orderResponse.getBody().get("links") : null;
+            String approvalUrl = null;
+            if (linksObj instanceof List<?> linksList) {
+                for (Object link : linksList) {
+                    if (link instanceof Map<?,?> linkMap && "approve".equals(linkMap.get("rel"))) {
+                        approvalUrl = (String) linkMap.get("href");
+                        break;
+                    }
                 }
             }
-            // Validación explícita de campos obligatorios
-            if (payment.getUser() == null || payment.getAmount() == null || payment.getStatus() == null || payment.getDate() == null || payment.getConcept() == null) {
-                logger.error("Faltan campos obligatorios: user={}, amount={}, status={}, date={}, concept={}", payment.getUser(), payment.getAmount(), payment.getStatus(), payment.getDate(), payment.getConcept());
-                return ResponseEntity.badRequest().body("Faltan campos obligatorios o hay un valor nulo");
+            if (approvalUrl != null) {
+                return ResponseEntity.ok(Map.of("approvalUrl", approvalUrl));
+            } else {
+                return ResponseEntity.status(500).body(Map.of("error", "No se pudo obtener el approvalUrl de PayPal"));
             }
-            logger.info("Datos a guardar: user={}, amount={}, status={}, date={}, concept={}, invoiceNumber={}, paidDate={}", payment.getUser().getName(), payment.getAmount(), payment.getStatus(), payment.getDate(), payment.getConcept(), payment.getInvoiceNumber(), payment.getPaidDate());
-            logger.info("Pago creado correctamente para usuario: {}", userOpt.get().getName());
-            return ResponseEntity.ok(paymentService.savePayment(payment));
         } catch (Exception e) {
-            logger.error("Error al crear el pago: ", e);
-            return ResponseEntity.badRequest().body("Error al crear el pago: " + e.getMessage());
+            logger.error("Error creando orden PayPal", e);
+            return ResponseEntity.status(500).body(Map.of("error", "Error creando orden PayPal: " + e.getMessage()));
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Object> updatePayment(@PathVariable Long id, @RequestBody PaymentDTO paymentDTO) {
-        Optional<Payment> existingOpt = paymentService.getPaymentById(id);
-        if (existingOpt.isEmpty()) return ResponseEntity.notFound().build();
-        Payment payment = existingOpt.get();
-
-        updatePaymentFields(payment, paymentDTO);
-        normalizeAndSetStatus(payment, paymentDTO.getStatus());
-        updatePaidDate(payment, paymentDTO.getPaidDate());
-
-        Payment saved = paymentService.savePayment(payment);
-        Map<String, Object> dto = Map.of(
-            "id", saved.getId(),
-            "studentName", saved.getUser().getName(),
-            "concept", saved.getConcept(),
-            "amount", saved.getAmount(),
-            "dueDate", saved.getDate() != null ? saved.getDate().toString() : "N/A",
-            "paidDate", saved.getPaidDate() != null ? saved.getPaidDate().toString() : "N/A",
-            "status", saved.getStatus() != null ? saved.getStatus() : "N/A",
-            "invoiceNumber", saved.getInvoiceNumber(),
-            "userId", saved.getUser() != null ? saved.getUser().getId() : null
-        );
-        return ResponseEntity.ok(dto);
+    // Obtener todos los pagos
+    @GetMapping
+    public ResponseEntity<List<PaymentDTO>> getAllPayments() {
+        List<Payment> payments = paymentService.getAllPayments();
+        List<PaymentDTO> dtos = payments.stream().map(payment -> {
+            PaymentDTO dto = new PaymentDTO();
+            dto.setId(payment.getId());
+            dto.setAmount(payment.getAmount());
+            dto.setConcept(payment.getConcept());
+            dto.setStatus(payment.getStatus());
+            dto.setInvoiceNumber(payment.getInvoiceNumber());
+            dto.setPaidDate(payment.getPaidDate() != null ? payment.getPaidDate().toString() : null);
+            dto.setDueDate(payment.getDate() != null ? payment.getDate().toString() : null);
+            if (payment.getUser() != null) {
+                dto.setStudentName(payment.getUser().getName());
+                dto.setStudentId(payment.getUser().getId());
+            }
+            return dto;
+        }).toList();
+        return ResponseEntity.ok(dtos);
     }
 
-    private void updatePaymentFields(Payment payment, PaymentDTO paymentDTO) {
-        if (paymentDTO.getStudentName() != null) {
-            Optional<User> userOpt = userService.getAllUsers().stream()
-                .filter(u -> u.getName().trim().equalsIgnoreCase(paymentDTO.getStudentName().trim()))
-                .findFirst();
-            userOpt.ifPresent(payment::setUser);
-        }
-        if (paymentDTO.getAmount() != null) payment.setAmount(paymentDTO.getAmount());
-        if (paymentDTO.getDueDate() != null) payment.setDate(parseDateFlexible(paymentDTO.getDueDate()));
-        if (paymentDTO.getConcept() != null) payment.setConcept(paymentDTO.getConcept());
-        if (paymentDTO.getInvoiceNumber() != null) payment.setInvoiceNumber(paymentDTO.getInvoiceNumber());
+    // Obtener pagos por usuario
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<PaymentDTO>> getPaymentsByUser(@PathVariable Long userId) {
+        List<Payment> payments = paymentService.getPaymentsByUserId(userId);
+        List<PaymentDTO> dtos = payments.stream().map(payment -> {
+            PaymentDTO dto = new PaymentDTO();
+            dto.setId(payment.getId());
+            dto.setAmount(payment.getAmount());
+            dto.setConcept(payment.getConcept());
+            dto.setStatus(payment.getStatus());
+            dto.setInvoiceNumber(payment.getInvoiceNumber());
+            dto.setPaidDate(payment.getPaidDate() != null ? payment.getPaidDate().toString() : null);
+            dto.setDueDate(payment.getDate() != null ? payment.getDate().toString() : null);
+            if (payment.getUser() != null) {
+                dto.setStudentName(payment.getUser().getName());
+                dto.setStudentId(payment.getUser().getId());
+            }
+            return dto;
+        }).toList();
+        return ResponseEntity.ok(dtos);
     }
+    // ...otros métodos originales aquí...
 
     private void normalizeAndSetStatus(Payment payment, String status) {
         if (status != null) {
@@ -217,4 +260,6 @@ public class PaymentController {
         paymentService.deletePayment(id);
         return ResponseEntity.noContent().build();
     }
+
+    // ...otros métodos originales aquí...
 }
