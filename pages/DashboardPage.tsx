@@ -1,29 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { usePayments } from '../contexts/PaymentContext';
+import { getUserPaymentSummary } from '../services/paymentService';
 import { PaymentStatus, Payment } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../hooks/useTranslation';
 import SchoolCalendarModal from '../components/ui/SchoolCalendarModal';
 
+type UpcomingPayment = {
+  id: string | number;
+  concept: string;
+  amount: number;
+  dueDate: string;
+  status: string;
+};
+
+type PaymentSummary = {
+  pendingCount: number;
+  totalDue: number;
+  upcomingCount: number;
+  upcomingPayments: UpcomingPayment[];
+};
+
 const DashboardPage: React.FC = () => {
-  const { payments } = usePayments();
+  const { payments, refreshPayments } = usePayments();
   const { currentUser } = useAuth();
   const { t } = useTranslation();
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  // Filtrar pagos del usuario actual por userId
-  const studentPayments = payments.filter(p => p.studentId == currentUser?.id);
+  // Estado para el resumen del backend
+  const [summary, setSummary] = useState<PaymentSummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  // Filtro insensible a mayúsculas para status
+  // Refresca el resumen cada vez que cambian los pagos o el usuario
+  useEffect(() => {
+    const fetchSummary = async () => {
+      if (currentUser?.id) {
+        setLoadingSummary(true);
+        setSummaryError(null);
+        try {
+          const res = await getUserPaymentSummary(currentUser.id);
+          setSummary(res);
+        } catch (e) {
+          setSummaryError('No se pudo cargar el resumen');
+        } finally {
+          setLoadingSummary(false);
+        }
+      }
+    };
+    fetchSummary();
+  }, [currentUser, payments]);
+
+  // Exponer función para forzar sincronización desde otras páginas si es necesario
+  const syncPaymentsAndSummary = async () => {
+    await refreshPayments();
+    if (currentUser?.id) {
+      try {
+        const res = await getUserPaymentSummary(currentUser.id);
+        setSummary(res);
+      } catch {}
+    }
+  };
+
+  // Mantener lógica de pagos para listas (no tarjetas)
+  const studentPayments = payments.filter(p => p.studentId == currentUser?.id);
   const pendingPayments = studentPayments.filter(p => {
     const status = (p.status || '').toString().toUpperCase();
     return status === 'PENDING' || status === 'OVERDUE' || status === 'PENDIENTE'.toUpperCase() || status === 'VENCIDO'.toUpperCase();
   });
-  const totalDue = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
-  
   const upcomingPayments = pendingPayments
     .filter(p => {
       const status = (p.status || '').toString().toUpperCase();
@@ -31,9 +78,11 @@ const DashboardPage: React.FC = () => {
     })
     .sort((a,b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 3);
-
   const recentPaidPayments = studentPayments
-    .filter(p => (p.status || '').toString().toUpperCase() === 'PAID' && p.paidDate)
+    .filter(p => {
+      const status = (p.status || '').toString().toUpperCase();
+      return (status === 'PAID' || status === 'PAGADO') && p.paidDate;
+    })
     .sort((a,b) => new Date(b.paidDate!).getTime() - new Date(a.paidDate!).getTime())
     .slice(0,3);
 
@@ -66,23 +115,23 @@ const DashboardPage: React.FC = () => {
       <h1 className="text-3xl font-bold text-gray-800">{t('welcome')}, {currentUser?.name || t('student')}!</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard 
-            titleKey="pendingPayments" 
-            value={pendingPayments.length} 
-            icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
-            color="bg-yellow-500"
+        <StatCard
+          titleKey="pendingPayments"
+          value={loadingSummary ? '...' : summaryError ? '!' : summary?.pendingCount ?? 0}
+          icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+          color="bg-yellow-500"
         />
-        <StatCard 
-            titleKey="totalDue" 
-            value={`$${totalDue.toFixed(2)}`}
-            icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" /></svg>}
-            color="bg-red-500"
+        <StatCard
+          titleKey="totalDue"
+          value={loadingSummary ? '...' : summaryError ? '!' : `$${(summary?.totalDue ?? 0).toFixed(2)}`}
+          icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" /></svg>}
+          color="bg-red-500"
         />
-        <StatCard 
-            titleKey="grade"
-            value={currentUser?.grade || t('na')}
-            icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" /></svg>}
-            color="bg-blue-500"
+        <StatCard
+          titleKey="grade"
+          value={currentUser?.grade || t('na')}
+          icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" /></svg>}
+          color="bg-blue-500"
         />
       </div>
 
@@ -100,13 +149,17 @@ const DashboardPage: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title={t('upcomingPayments')}>
-          {upcomingPayments.length > 0 ? (
+          {loadingSummary ? (
+            <p className="text-gray-600">Cargando...</p>
+          ) : summaryError ? (
+            <p className="text-red-600">{summaryError}</p>
+          ) : summary && summary.upcomingPayments && summary.upcomingPayments.length > 0 ? (
             <ul className="space-y-3">
-              {upcomingPayments.map(p => (
+              {summary.upcomingPayments.map(p => (
                 <li key={p.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-md hover:bg-gray-100">
                   <div>
                     <p className="font-medium text-gray-800">{p.concept}</p>
-                    <p className="text-sm text-gray-500">{t('dueDate')}: {new Date(p.dueDate).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">{t('dueDate')}: {p.dueDate ? new Date(p.dueDate).toLocaleDateString() : ''}</p>
                   </div>
                   <span className="font-semibold text-gray-700">${p.amount.toFixed(2)}</span>
                 </li>

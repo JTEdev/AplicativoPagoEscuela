@@ -14,7 +14,7 @@ export interface Payment {
   amount: number;
   dueDate: string; // ISO Date string
   paidDate?: string; // ISO Date string
-  status: PaymentStatus;
+  status: string;
   invoiceNumber?: string;
   grade?: string; // <-- Agregado para mostrar grado/clase
 }

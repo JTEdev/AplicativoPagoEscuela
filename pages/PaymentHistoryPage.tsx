@@ -13,7 +13,10 @@ const PaymentHistoryPage: React.FC = () => {
   const [selectedPaymentForReceipt, setSelectedPaymentForReceipt] = useState<Payment | null>(null);
 
   const paidPayments = payments
-    .filter(p => (p.status || '').toString().toUpperCase() === 'PAID')
+    .filter(p => {
+      const status = (p.status || '').toString().toUpperCase();
+      return (status === 'PAID' || status === 'PAGADO') && p.paidDate;
+    })
     .sort((a,b) => new Date(b.paidDate!).getTime() - new Date(a.paidDate!).getTime());
 
   const handleViewReceipt = (paymentId: string) => {

@@ -8,6 +8,7 @@ interface PaymentContextType {
   payments: Payment[];
   updatePaymentStatus: (paymentId: string, newStatus: PaymentStatus) => void;
   getPaymentById: (paymentId: string) => Payment | undefined;
+  refreshPayments: () => Promise<void>;
 }
 
 const PaymentContext = createContext<PaymentContextType | undefined>(undefined);
@@ -61,7 +62,7 @@ export const PaymentProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [payments]);
 
   return (
-    <PaymentContext.Provider value={{ payments, updatePaymentStatus, getPaymentById }}>
+    <PaymentContext.Provider value={{ payments, updatePaymentStatus, getPaymentById, refreshPayments: fetchPayments }}>
       {children}
     </PaymentContext.Provider>
   );

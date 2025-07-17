@@ -30,10 +30,21 @@ public class Payment {
     @Column(nullable = true)
     private String invoiceNumber;
 
+
     @Column(nullable = true)
     private LocalDate paidDate;
 
+    @Column(nullable = true)
+    private String grade;
+
+    @Column(nullable = true)
+    private String transactionId;
+
     // Getters y setters
+    public String getTransactionId() { return transactionId; }
+    public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
+    public String getGrade() { return grade; }
+    public void setGrade(String grade) { this.grade = grade; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public User getUser() { return user; }

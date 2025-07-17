@@ -62,12 +62,12 @@ const AdminAllPaymentsPage: React.FC = () => {
     try {
       const payment = payments.find(p => p.id === paymentId);
       if (!payment) return;
-      // Traducir el status a mayúsculas para el backend
+      // Traducir el status a español para el backend
       let statusToSend = newStatus;
-      if (newStatus === PaymentStatus.Paid) statusToSend = 'PAID' as any;
-      else if (newStatus === PaymentStatus.Pending) statusToSend = 'PENDING' as any;
-      else if (newStatus === PaymentStatus.Overdue) statusToSend = 'OVERDUE' as any;
-      else if (newStatus === PaymentStatus.Processing) statusToSend = 'PROCESSING' as any;
+      if (newStatus === PaymentStatus.Paid) statusToSend = 'Pagado' as any;
+      else if (newStatus === PaymentStatus.Pending) statusToSend = 'Pendiente' as any;
+      else if (newStatus === PaymentStatus.Overdue) statusToSend = 'Vencido' as any;
+      else if (newStatus === PaymentStatus.Processing) statusToSend = 'Procesando' as any;
       // Eliminar paidDate si es 'N/A' para que el backend asigne la fecha actual
       const paymentToSend = { ...payment, status: statusToSend };
       if (paymentToSend.paidDate === 'N/A') {
@@ -121,24 +121,14 @@ const AdminAllPaymentsPage: React.FC = () => {
     });
   }, [payments, selectedStudentId, users]);
   
-  const getStatusClass = (status: PaymentStatus) => {
+  const getStatusClass = (status: string) => {
     // Acepta tanto valores en inglés como en español
-    switch (status?.toString().toUpperCase()) {
-      case 'PAID':
-      case 'PAGADO':
-        return 'bg-green-100 text-green-700';
-      case 'PENDING':
-      case 'PENDIENTE':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'OVERDUE':
-      case 'VENCIDO':
-        return 'bg-red-100 text-red-700';
-      case 'PROCESSING':
-      case 'PROCESANDO':
-        return 'bg-blue-100 text-blue-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
+    const normalized = status?.toString().toUpperCase();
+    if (normalized === 'PAID' || normalized === 'PAGADO') return 'bg-green-100 text-green-700';
+    if (normalized === 'PENDING' || normalized === 'PENDIENTE') return 'bg-yellow-100 text-yellow-700';
+    if (normalized === 'OVERDUE' || normalized === 'VENCIDO') return 'bg-red-100 text-red-700';
+    if (normalized === 'PROCESSING' || normalized === 'PROCESANDO') return 'bg-blue-100 text-blue-700';
+    return 'bg-gray-100 text-gray-700';
   };
 
   // Crear pago
@@ -212,27 +202,8 @@ const handleEditPayment = async (e: React.FormEvent) => {
     if (!paymentId) throw new Error('ID de pago no encontrado');
     const dueDateInput = (document.getElementById('edit_dueDate') as HTMLInputElement)?.value;
 
-    // Mapeo robusto de estado
-    const statusMap: Record<string, string> = {
-      'pending': 'Pendiente',
-      'pendiente': 'Pendiente',
-      'Pending': 'Pendiente',
-      'Paid': 'Pagado',
-      'paid': 'Pagado',
-      'pagado': 'Pagado',
-      'Pagado': 'Pagado',
-      'overdue': 'Vencido',
-      'Overdue': 'Vencido',
-      'vencido': 'Vencido',
-      'Vencido': 'Vencido',
-      'processing': 'Procesando',
-      'Processing': 'Procesando',
-      'procesando': 'Procesando',
-      'Procesando': 'Procesando',
-    };
-    const statusValue = (editFormState.status || '').toString();
-    const statusToSend = statusMap[statusValue] || 'Pendiente';
-
+    // Enviar el valor seleccionado en el formulario, sin transformar
+    const statusToSend = editFormState.status;
     const paymentToSend: any = { ...editFormState, dueDate: dueDateInput, status: statusToSend };
     if (paymentToSend.paidDate === 'N/A') delete paymentToSend.paidDate;
     await paymentService.updatePayment(paymentId, paymentToSend);
@@ -304,11 +275,20 @@ const handleEditPayment = async (e: React.FormEvent) => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 text-right">${payment.amount.toFixed(2)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(payment.dueDate)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {payment.status && payment.status.toString().toUpperCase() === 'PAID' ? formatDate(payment.paidDate) : t('na')}
+                        {payment.status && (payment.status.toString().toUpperCase() === 'PAID' || payment.status.toString().toUpperCase() === 'PAGADO')
+                          ? formatDate(payment.paidDate)
+                          : t('na')}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusClass(payment.status)}`}>
-                            {t(payment.status.toLowerCase() as any)} 
+                            {(() => {
+                              const normalized = payment.status?.toString().toUpperCase();
+                              if (normalized === 'PAID' || normalized === 'PAGADO') return t('paid');
+                              if (normalized === 'PENDING' || normalized === 'PENDIENTE') return t('pending');
+                              if (normalized === 'OVERDUE' || normalized === 'VENCIDO') return t('overdue');
+                              if (normalized === 'PROCESSING' || normalized === 'PROCESANDO') return t('processing');
+                              return payment.status;
+                            })()}
                           </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm flex gap-2 items-center">
@@ -462,11 +442,11 @@ const handleEditPayment = async (e: React.FormEvent) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">{t('status')}</label>
-                <select required value={editFormState.status || PaymentStatus.Pending} onChange={e => setEditFormState(f => ({ ...f, status: e.target.value as PaymentStatus }))} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
-                  <option value={PaymentStatus.Pending}>{t('pending')}</option>
-                  <option value={PaymentStatus.Paid}>{t('paid')}</option>
-                  <option value={PaymentStatus.Overdue}>{t('overdue')}</option>
-                  <option value={PaymentStatus.Processing}>{t('processing')}</option>
+                <select required value={editFormState.status || 'Pendiente'} onChange={e => setEditFormState(f => ({ ...f, status: e.target.value }))} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                  <option value="Pendiente">{t('pending')}</option>
+                  <option value="Pagado">{t('paid')}</option>
+                  <option value="Vencido">{t('overdue')}</option>
+                  <option value="Procesando">{t('processing')}</option>
                 </select>
               </div>
               <div className="flex justify-end gap-2 mt-4">

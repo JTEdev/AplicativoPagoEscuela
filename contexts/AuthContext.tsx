@@ -71,19 +71,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = useCallback(async (email: string, passwordAttempt: string): Promise<boolean> => {
     setIsLoading(true);
-    return new Promise(resolve => {
-        setTimeout(() => { // Simula una llamada a la API
-            const user = users.find(u => u.email === email && u.password === passwordAttempt);
-            if (user) {
-                setCurrentUser(user);
-                resolve(true);
-            } else {
-                resolve(false);
-            }
-            setIsLoading(false);
-        }, 500);
-    });
-  }, [users]);
+    try {
+        const response = await fetch('http://localhost:8080/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password: passwordAttempt }),
+        });
+
+        if (response.ok) {
+            const user = await response.json();
+            setCurrentUser(user);
+            return true;
+        } else {
+            return false;
+        }
+    } catch (error) {
+        console.error('Error during login:', error);
+        return false;
+    } finally {
+        setIsLoading(false);
+    }
+}, []);
 
   const logout = useCallback(() => {
     setCurrentUser(null);

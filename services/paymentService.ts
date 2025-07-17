@@ -1,3 +1,31 @@
+export interface PaymentSummary {
+  pendingCount: number;
+  totalDue: number;
+  upcomingCount: number;
+  upcomingPayments: Array<{
+    id: string | number;
+    concept: string;
+    amount: number;
+    dueDate: string;
+    status: string;
+  }>;
+}
+
+export async function getUserPaymentSummary(userId: string | number): Promise<PaymentSummary> {
+  const res = await fetch(`${API_URL}/user/${userId}/summary`);
+  if (!res.ok) throw new Error('Error al obtener resumen de pagos del usuario');
+  return res.json();
+}
+export async function markPaymentAsPaid(id: string | number, transactionId?: string): Promise<Payment> {
+  const body = transactionId ? JSON.stringify({ transactionId }) : undefined;
+  const res = await fetch(`${API_URL}/${id}/mark-paid`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body
+  });
+  if (!res.ok) throw new Error('Error al marcar pago como pagado');
+  return res.json();
+}
 import { Payment } from '../types';
 
 export const API_URL = 'http://localhost:8080/api/payments';
@@ -13,7 +41,12 @@ export async function getPaymentsByUser(userId: string | number): Promise<Paymen
   const res = await fetch(`${API_URL}/user/${userId}`);
   if (!res.ok) throw new Error('Error al obtener pagos del usuario');
   const pagos = await res.json();
-  return pagos.map((p: any) => ({ ...p, userId: p.studentId }));
+  // Asegura que dueDate esté presente y en formato string
+  return pagos.map((p: any) => ({
+    ...p,
+    userId: p.studentId,
+    dueDate: p.dueDate || p.date || '',
+  }));
 }
 
 export async function createPayment(payment: Partial<Payment>): Promise<Payment> {

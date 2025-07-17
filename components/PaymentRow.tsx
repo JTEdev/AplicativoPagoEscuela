@@ -9,36 +9,36 @@ interface PaymentRowProps {
   onViewReceipt?: (paymentId: string) => void;
 }
 
-const PaymentStatusBadge: React.FC<{ status: PaymentStatus }> = ({ status }) => {
+const PaymentStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const { t } = useTranslation();
   let bgColor = '';
   let textColor = '';
-
-  switch (status) {
-    case PaymentStatus.Paid:
-      bgColor = 'bg-green-100';
-      textColor = 'text-green-700';
-      break;
-    case PaymentStatus.Pending:
-      bgColor = 'bg-yellow-100';
-      textColor = 'text-yellow-700';
-      break;
-    case PaymentStatus.Overdue:
-      bgColor = 'bg-red-100';
-      textColor = 'text-red-700';
-      break;
-    case PaymentStatus.Processing:
-      bgColor = 'bg-blue-100';
-      textColor = 'text-blue-700';
-      break;
-    default:
-      bgColor = 'bg-gray-100';
-      textColor = 'text-gray-700';
+  const normalized = status?.toString().toUpperCase();
+  if (normalized === 'PAID' || normalized === 'PAGADO') {
+    bgColor = 'bg-green-100';
+    textColor = 'text-green-700';
+  } else if (normalized === 'PENDING' || normalized === 'PENDIENTE') {
+    bgColor = 'bg-yellow-100';
+    textColor = 'text-yellow-700';
+  } else if (normalized === 'OVERDUE' || normalized === 'VENCIDO') {
+    bgColor = 'bg-red-100';
+    textColor = 'text-red-700';
+  } else if (normalized === 'PROCESSING' || normalized === 'PROCESANDO') {
+    bgColor = 'bg-blue-100';
+    textColor = 'text-blue-700';
+  } else {
+    bgColor = 'bg-gray-100';
+    textColor = 'text-gray-700';
   }
-
+  // Mostrar texto traducido
+  let text = status;
+  if (normalized === 'PAID' || normalized === 'PAGADO') text = t('paid');
+  else if (normalized === 'PENDING' || normalized === 'PENDIENTE') text = t('pending');
+  else if (normalized === 'OVERDUE' || normalized === 'VENCIDO') text = t('overdue');
+  else if (normalized === 'PROCESSING' || normalized === 'PROCESANDO') text = t('processing');
   return (
     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${bgColor} ${textColor}`}>
-      {t(status.toLowerCase() as any)} {/* Translate status */}
+      {text}
     </span>
   );
 };

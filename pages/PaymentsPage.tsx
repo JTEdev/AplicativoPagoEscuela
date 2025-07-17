@@ -11,7 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const PaymentsPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { payments, markPaymentAsPaid } = usePayments(currentUser?.id || '');
+  const { payments, markPaymentAsPaid, refreshPayments } = usePayments(currentUser?.id || '');
   const { t } = useTranslation();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(null);
@@ -38,6 +38,7 @@ const PaymentsPage: React.FC = () => {
       if (data.approvalUrl) {
         window.location.href = data.approvalUrl;
         await markPaymentAsPaid(paymentId); // Actualizar estado después del pago
+        await refreshPayments(); // Refrescar lista de pagos pendientes
       } else {
         throw new Error('No se recibió la URL de aprobación de PayPal');
       }

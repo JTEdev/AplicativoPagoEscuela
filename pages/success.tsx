@@ -1,13 +1,34 @@
+
 import React, { useEffect, useState } from 'react';
+import { markPaymentAsPaid } from '../services/paymentService';
 import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
+import { useNavigate } from 'react-router-dom';
 
 const SuccessPage: React.FC = () => {
   const [showModal, setShowModal] = useState(true);
 
+  const navigate = useNavigate();
   useEffect(() => {
     setShowModal(true);
-  }, []);
+    // Obtener paymentId y transactionId de la URL
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get('paymentId');
+    const transactionId = params.get('transactionId');
+    if (paymentId) {
+      markPaymentAsPaid(paymentId, transactionId || undefined)
+        .then(() => {
+          // Redirigir al dashboard y forzar recarga para sincronizar actividad reciente
+          setTimeout(() => {
+            navigate('/', { replace: true });
+            window.location.reload();
+          }, 1200);
+        })
+        .catch(() => {
+          // Opcional: mostrar mensaje de error
+        });
+    }
+  }, [navigate]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -16,8 +37,8 @@ const SuccessPage: React.FC = () => {
         onClose={() => setShowModal(false)}
         title="Pago exitoso"
         footer={
-          <Button variant="success" onClick={() => window.location.href = '/'}>
-            Ir al inicio
+          <Button variant="success" onClick={() => { window.location.href = '/payments'; }}>
+            Ir a Pagos Pendientes
           </Button>
         }
       >

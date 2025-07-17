@@ -1,0 +1,8 @@
+No existe un endpoint /api/payments/{id}/mark-paid en tu backend. El frontend espera este endpoint para marcar el pago como pagado después de PayPal.
+
+Voy a agregar el endpoint POST /api/payments/{id}/mark-paid en PaymentController.java para que el frontend pueda sincronizar correctamente el estado del pago.
+
+El endpoint:
+- Buscará el pago por id.
+- Cambiará el status a PAID y la fecha a hoy.
+- Guardará y devolverá el DTO actualizado.
